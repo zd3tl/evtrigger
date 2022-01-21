@@ -178,3 +178,8 @@ func Test_run(t *testing.T) {
 	tgr.run()
 	tgr.wg.Wait()
 }
+
+func Test_NewTrigger(t *testing.T) {
+	tgr, _ := NewTrigger()
+	tgr.Close()
+}

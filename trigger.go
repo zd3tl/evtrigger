@@ -144,6 +144,7 @@ func NewTrigger(opts ...TriggerOption) (*trigger, error) {
 		ch:     make(chan struct{}, 1),
 	}
 
+	// 运行worker
 	workerSize := ops.workerSize
 	if ops.workerSize <= 0 {
 		workerSize = defaultWorkerSize
@@ -153,6 +154,7 @@ func NewTrigger(opts ...TriggerOption) (*trigger, error) {
 		go tgr.run()
 	}
 
+	// 运行event获取
 	tgr.wg.Add(1)
 	go tgr.get()
 
