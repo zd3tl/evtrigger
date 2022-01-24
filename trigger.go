@@ -95,7 +95,7 @@ type Trigger struct {
 }
 
 // TriggerCallback 把event的value给到调用方
-type TriggerCallback func(eventValue interface{}) error
+type TriggerCallback func(key string, value interface{}) error
 
 type triggerOptions struct {
 	// workerSize 处理callback的goroutine数量
@@ -259,7 +259,7 @@ func (tgr *Trigger) run() {
 			tgr.lg.Info("run exit")
 			return
 		case ev := <-tgr.buffer:
-			if err := ev.callbackFunc(ev.event); err != nil {
+			if err := ev.callbackFunc(ev.event.Key, ev.event.Value); err != nil {
 				tgr.lg.Error(
 					"callback error",
 					zap.Error(err),

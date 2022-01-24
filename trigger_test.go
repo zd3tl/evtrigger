@@ -22,14 +22,14 @@ func Test_Register(t *testing.T) {
 		},
 		{
 			key: "foo",
-			callback: func(eventValue interface{}) error {
+			callback: func(key string, value interface{}) error {
 				return nil
 			},
 			expect: nil,
 		},
 		{
 			key: "foo",
-			callback: func(eventValue interface{}) error {
+			callback: func(key string, value interface{}) error {
 				return nil
 			},
 			expect: ErrCallbackExist,
@@ -111,7 +111,7 @@ func Test_get(t *testing.T) {
 
 				list: &itemList{},
 				callbacks: map[string]TriggerCallback{
-					"foo": func(eventValue interface{}) error {
+					"foo": func(key string, value interface{}) error {
 						return nil
 					},
 				},
@@ -155,7 +155,7 @@ func Test_run(t *testing.T) {
 
 		list: &itemList{},
 		callbacks: map[string]TriggerCallback{
-			"foo": func(eventValue interface{}) error {
+			"foo": func(key string, value interface{}) error {
 				fmt.Println("foo event got")
 				return nil
 			},
