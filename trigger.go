@@ -286,5 +286,5 @@ func (tgr *Trigger) run() {
 }
 
 func (tgr *Trigger) ForEach(visitor func(it interface{}) error) error {
-	return tgr.ForEach(visitor)
+	return tgr.list.ForEach(visitor)
 }
