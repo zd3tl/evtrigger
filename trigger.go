@@ -52,6 +52,21 @@ func (il *itemList) dequeue() interface{} {
 	return i
 }
 
+func (il *itemList) ForEach(visitor func(it interface{}) error) error {
+	if il.head == nil {
+		return nil
+	}
+
+	// 保持head位置不变，临时变量ih走到tail，逐个调用visitor
+	ih := il.head
+	for ih != il.tail {
+		if err := visitor(ih.it); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type TriggerEvent struct {
 	Key   string
 	Value interface{}
