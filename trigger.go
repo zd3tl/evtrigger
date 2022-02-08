@@ -154,9 +154,10 @@ func NewTrigger(opts ...TriggerOption) (*Trigger, error) {
 		wg:         sync.WaitGroup{},
 		lg:         lg,
 
-		list:   &itemList{},
-		buffer: make(chan *internalEvent, defaultBufferSize),
-		ch:     make(chan struct{}, 1),
+		list:      &itemList{},
+		buffer:    make(chan *internalEvent, defaultBufferSize),
+		ch:        make(chan struct{}, 1),
+		callbacks: make(map[string]TriggerCallback),
 	}
 
 	// 运行worker
