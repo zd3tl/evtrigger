@@ -63,6 +63,7 @@ func (il *itemList) ForEach(visitor func(it interface{}) error) error {
 		if err := visitor(ih.it); err != nil {
 			return err
 		}
+		ih = ih.next
 	}
 	return nil
 }
@@ -70,13 +71,6 @@ func (il *itemList) ForEach(visitor func(it interface{}) error) error {
 type TriggerEvent struct {
 	Key   string
 	Value interface{}
-}
-
-// internalEvent 是 Trigger 内部传递的数据，在dispatch时，把callback得到，下发给goroutine，减少callbacks的竞争压力，
-// 放在worker去竞争，随着worker的goroutine数量增加，竞争会比较激烈
-type internalEvent struct {
-	event        *TriggerEvent
-	callbackFunc TriggerCallback
 }
 
 type Trigger struct {
@@ -106,7 +100,7 @@ type Trigger struct {
 	callbacks map[string]TriggerCallback
 
 	// buffer 存储提交给goroutine池的
-	buffer chan *internalEvent
+	buffer chan *TriggerEvent
 }
 
 // TriggerCallback 把event的value给到调用方
@@ -155,7 +149,7 @@ func NewTrigger(opts ...TriggerOption) (*Trigger, error) {
 		lg:         lg,
 
 		list:      &itemList{},
-		buffer:    make(chan *internalEvent, defaultBufferSize),
+		buffer:    make(chan *TriggerEvent, defaultBufferSize),
 		ch:        make(chan struct{}, 1),
 		callbacks: make(map[string]TriggerCallback),
 	}
@@ -239,18 +233,7 @@ func (tgr *Trigger) get() {
 		if h != nil {
 			tgr.listMu.Unlock()
 			ev := h.(*TriggerEvent)
-
-			tgr.callbackMu.Lock()
-			callback := tgr.callbacks[ev.Key]
-			tgr.callbackMu.Unlock()
-			if callback == nil {
-				tgr.lg.Error(
-					"nil callback",
-					zap.String("key", ev.Key),
-				)
-			} else {
-				tgr.buffer <- &internalEvent{event: ev, callbackFunc: callback}
-			}
+			tgr.buffer <- ev
 			continue
 		}
 
@@ -275,11 +258,11 @@ func (tgr *Trigger) run() {
 			tgr.lg.Info("run exit")
 			return
 		case ev := <-tgr.buffer:
-			if err := ev.callbackFunc(ev.event.Key, ev.event.Value); err != nil {
+			if err := tgr.callbacks[ev.Key](ev.Key, ev.Value); err != nil {
 				tgr.lg.Error(
 					"callback error",
 					zap.Error(err),
-					zap.String("ev-key", ev.event.Key),
+					zap.String("ev-key", ev.Key),
 				)
 			}
 		}
