@@ -95,7 +95,6 @@ type Trigger struct {
 	// 卡在ch的写入上。用ch做串联，即便提供一定的buffer，还在response写出和回复数据的进入上做了一定耦合。
 	consumerWaiting bool
 
-	callbackMu sync.Mutex
 	// callbacks 记录需要callback的event
 	callbacks map[string]TriggerCallback
 
@@ -176,8 +175,6 @@ func (tgr *Trigger) Register(key string, callback TriggerCallback) error {
 		return ErrCallbackNil
 	}
 
-	tgr.callbackMu.Lock()
-	defer tgr.callbackMu.Unlock()
 	_, ok := tgr.callbacks[key]
 	if ok {
 		tgr.lg.Warn(
@@ -188,12 +185,6 @@ func (tgr *Trigger) Register(key string, callback TriggerCallback) error {
 	}
 	tgr.callbacks[key] = callback
 	return nil
-}
-
-func (tgr *Trigger) Unregister(key string) {
-	tgr.callbackMu.Lock()
-	defer tgr.callbackMu.Unlock()
-	delete(tgr.callbacks, key)
 }
 
 func (tgr *Trigger) Close() {
