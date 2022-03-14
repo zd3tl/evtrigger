@@ -36,7 +36,7 @@ func Test_Register(t *testing.T) {
 		},
 	}
 	logger, _ := zap.NewDevelopment()
-	tgr := Trigger{
+	tgr := trigger{
 		lg:        logger,
 		callbacks: make(map[string]TriggerCallback),
 	}
@@ -52,14 +52,14 @@ func Test_Register(t *testing.T) {
 func Test_Put(t *testing.T) {
 	var tests = []struct {
 		event  *TriggerEvent
-		tgr    *Trigger
+		tgr    *trigger
 		expect error
 	}{
 		{
 			event: &TriggerEvent{
 				Key: "foo",
 			},
-			tgr: &Trigger{
+			tgr: &trigger{
 				list:            &itemList{},
 				consumerWaiting: true,
 			},
@@ -69,7 +69,7 @@ func Test_Put(t *testing.T) {
 			event: &TriggerEvent{
 				Key: "foo",
 			},
-			tgr: &Trigger{
+			tgr: &trigger{
 				list: &itemList{},
 			},
 			expect: nil,
@@ -79,7 +79,7 @@ func Test_Put(t *testing.T) {
 				Key:   "",
 				Value: "",
 			},
-			tgr: &Trigger{
+			tgr: &trigger{
 				list: &itemList{},
 			},
 			expect: ErrEventIllegal,
@@ -99,11 +99,11 @@ func Test_get(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 
 	var tests = []struct {
-		tgr      *Trigger
+		tgr      *trigger
 		addEvent bool
 	}{
 		{
-			tgr: &Trigger{
+			tgr: &trigger{
 				ctx:        ctx,
 				cancelFunc: cancal,
 				lg:         logger,
@@ -120,7 +120,7 @@ func Test_get(t *testing.T) {
 			addEvent: true,
 		},
 		{
-			tgr: &Trigger{
+			tgr: &trigger{
 				wg:         sync.WaitGroup{},
 				lg:         logger,
 				ctx:        ctx,
@@ -147,7 +147,7 @@ func Test_run(t *testing.T) {
 	ctx, cancal := context.WithCancel(context.Background())
 	logger, _ := zap.NewDevelopment()
 
-	tgr := &Trigger{
+	tgr := &trigger{
 		wg:         sync.WaitGroup{},
 		lg:         logger,
 		ctx:        ctx,

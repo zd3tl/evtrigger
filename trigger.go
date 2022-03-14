@@ -14,9 +14,9 @@ var (
 )
 
 var (
-	ErrCallbackNil   = errors.New("Trigger: callback nil")
-	ErrCallbackExist = errors.New("Trigger: callback exist")
-	ErrEventIllegal  = errors.New("Trigger: event error")
+	ErrCallbackNil   = errors.New("trigger: callback nil")
+	ErrCallbackExist = errors.New("trigger: callback exist")
+	ErrEventIllegal  = errors.New("trigger: event error")
 )
 
 // https://github.com/grpc/grpc-go/blob/689f7b154ee8a3f3ab6a6107ff7ad78189baae06/internal/transport/controlbuf.go#L40
@@ -68,12 +68,19 @@ func (il *itemList) ForEach(visitor func(it interface{}) error) error {
 	return nil
 }
 
+type Trigger interface {
+	Register(key string, callback TriggerCallback) error
+	Put(event *TriggerEvent) error
+	ForEach(visitor func(it interface{}) error) error
+	Close()
+}
+
 type TriggerEvent struct {
 	Key   string
 	Value interface{}
 }
 
-type Trigger struct {
+type trigger struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	// wg 管理goroutine退出
@@ -126,7 +133,7 @@ func WithLogger(v *zap.Logger) TriggerOption {
 	}
 }
 
-func NewTrigger(opts ...TriggerOption) (*Trigger, error) {
+func NewTrigger(opts ...TriggerOption) (Trigger, error) {
 	ops := &triggerOptions{}
 	for _, opt := range opts {
 		opt(ops)
@@ -141,7 +148,7 @@ func NewTrigger(opts ...TriggerOption) (*Trigger, error) {
 
 	// ctx和cancel
 	ctx, cancel := context.WithCancel(context.Background())
-	tgr := Trigger{
+	tgr := trigger{
 		ctx:        ctx,
 		cancelFunc: cancel,
 		wg:         sync.WaitGroup{},
@@ -170,7 +177,7 @@ func NewTrigger(opts ...TriggerOption) (*Trigger, error) {
 	return &tgr, nil
 }
 
-func (tgr *Trigger) Register(key string, callback TriggerCallback) error {
+func (tgr *trigger) Register(key string, callback TriggerCallback) error {
 	if callback == nil {
 		return ErrCallbackNil
 	}
@@ -187,14 +194,14 @@ func (tgr *Trigger) Register(key string, callback TriggerCallback) error {
 	return nil
 }
 
-func (tgr *Trigger) Close() {
+func (tgr *trigger) Close() {
 	if tgr.cancelFunc != nil {
 		tgr.cancelFunc()
 	}
 	tgr.wg.Wait()
 }
 
-func (tgr *Trigger) Put(event *TriggerEvent) error {
+func (tgr *trigger) Put(event *TriggerEvent) error {
 	if event == nil || event.Key == "" {
 		return ErrEventIllegal
 	}
@@ -216,7 +223,7 @@ func (tgr *Trigger) Put(event *TriggerEvent) error {
 	return nil
 }
 
-func (tgr *Trigger) get() {
+func (tgr *trigger) get() {
 	defer tgr.wg.Done()
 	for {
 		tgr.listMu.Lock()
@@ -233,7 +240,7 @@ func (tgr *Trigger) get() {
 
 		select {
 		case <-tgr.ch:
-			// 解决通过轮询等待的问题，否则就需要在 Trigger.list 为空的时候，等待一个可配置的事件
+			// 解决通过轮询等待的问题，否则就需要在 trigger.list 为空的时候，等待一个可配置的事件
 		case <-tgr.ctx.Done():
 			tgr.lg.Info("get exit")
 			return
@@ -241,7 +248,7 @@ func (tgr *Trigger) get() {
 	}
 }
 
-func (tgr *Trigger) run() {
+func (tgr *trigger) run() {
 	defer tgr.wg.Done()
 	for {
 		select {
@@ -260,6 +267,6 @@ func (tgr *Trigger) run() {
 	}
 }
 
-func (tgr *Trigger) ForEach(visitor func(it interface{}) error) error {
+func (tgr *trigger) ForEach(visitor func(it interface{}) error) error {
 	return tgr.list.ForEach(visitor)
 }
